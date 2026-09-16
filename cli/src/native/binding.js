@@ -17,6 +17,7 @@ function loadBinding() {
     'darwin-x64': 'evot-napi.darwin-x64.node',
     'linux-x64': 'evot-napi.linux-x64-gnu.node',
     'linux-arm64': 'evot-napi.linux-arm64-gnu.node',
+    'win32-x64': 'evot-napi.win32-x64-msvc.node',
   }
 
   const key = `${platform}-${arch}`
