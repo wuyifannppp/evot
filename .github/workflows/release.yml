@@ -310,7 +310,7 @@ jobs:
         run: |
           cd cli
           bun install
-          npx napi build --manifest-path addon/Cargo.toml --release --platform --target ${{ matrix.target }} --output-dir .
+          bunx napi build --manifest-path addon/Cargo.toml --release --platform --target ${{ matrix.target }} --output-dir .
         env:
           EVOT_VERSION: ${{ needs.create_release.outputs.version }}
 
@@ -323,7 +323,11 @@ jobs:
           bun install
           # napi-rs resolves the MSVC toolchain from the Rust target; the
           # resulting cdylib is evot-napi.win32-x64-msvc.node in cwd.
-          npx napi build --manifest-path addon/Cargo.toml --release --platform --target ${{ matrix.target }} --output-dir .
+          # `bunx` resolves the locally installed @napi-rs/cli. `npx napi`
+          # is unreliable here: npm has no package literally named `napi`,
+          # so on Windows npx falls back to the registry and fails with
+          # ENOVERSIONS instead of using the local bin.
+          bunx napi build --manifest-path addon/Cargo.toml --release --platform --target ${{ matrix.target }} --output-dir .
         env:
           EVOT_VERSION: ${{ needs.create_release.outputs.version }}
 
