@@ -26,6 +26,43 @@ const MAX_DISPLAY_LINES: usize = 2000;
 const MAX_DISPLAY_BYTES: usize = 50 * 1024;
 /// Max bytes per single output line before truncation.
 const MAX_LINE_BYTES: usize = 4096;
+
+/// Resolve the `bash` executable for this platform.
+///
+/// On Unix, `bash` is on PATH. On Windows there is no POSIX shell built in;
+/// the Bash tool is driven by Git Bash (or MSYS2), whose `bash.exe` lives in a
+/// handful of well-known install locations. Failing fast with a readable
+/// message beats a generic spawn error.
+fn resolve_bash() -> Result<std::path::PathBuf, ToolError> {
+    #[cfg(windows)]
+    {
+        use std::path::PathBuf;
+        let candidates: &[&str] = &[
+            "bash",
+            r"C:\Program Files\Git\bin\bash.exe",
+            r"C:\Program Files\Git\usr\bin\bash.exe",
+            r"C:\Program Files (x86)\Git\bin\bash.exe",
+            r"C:\msys64\usr\bin\bash.exe",
+            r"C:\Program Files\GitHub CLI\bash.exe", // unlikely but harmless
+        ];
+        for candidate in candidates {
+            let path = PathBuf::from(candidate);
+            if path.is_file() {
+                return Ok(path);
+            }
+        }
+        Err(ToolError::Failed(
+            "The bash tool needs Git Bash on this Windows machine. \
+             Install Git for Windows (https://gitforwindows.org) or make \
+             bash.exe reachable on PATH, then retry."
+                .into(),
+        ))
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(std::path::PathBuf::from("bash"))
+    }
+}
 /// Foreground wait before a still-running command is yielded, when a host asks
 /// for one.
 ///
@@ -307,7 +344,8 @@ impl AgentTool for BashTool {
             })?,
         };
         let output_dir = process_output_dir(&ctx);
-        let mut command = Command::new("bash");
+        let bash = resolve_bash()?;
+        let mut command = Command::new(bash);
         command.arg("-c").arg(command_text).current_dir(&cwd);
         if !self.envs.is_empty() {
             command.envs(self.envs.iter().map(|(key, value)| (key, value)));

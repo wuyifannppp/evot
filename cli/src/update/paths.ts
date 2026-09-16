@@ -26,7 +26,8 @@ export function stateDir(env: Record<string, string | undefined> = process.env):
  * install location rather than Bun's own directory.
  */
 export function runningInstallDir(executablePath: string = process.execPath): string | null {
-  if (basename(executablePath) !== 'evot') return null
+  const name = basename(executablePath).replace(/\.exe$/i, '')
+  if (name !== 'evot') return null
   try {
     // Updating a symlink path would replace the link and split bin/ from the
     // binding beside its real target. Follow it so self-update preserves the
@@ -76,6 +77,7 @@ export function currentTarget(): string | null {
     case 'darwin-x64': return 'x86_64-apple-darwin'
     case 'linux-x64': return 'x86_64-unknown-linux-gnu'
     case 'linux-arm64': return 'aarch64-unknown-linux-gnu'
+    case 'win32-x64': return 'x86_64-pc-windows-msvc'
     default: return null
   }
 }
@@ -87,6 +89,7 @@ export function bindingFilenameForTarget(target: string): string | null {
     case 'x86_64-apple-darwin': return 'evot-napi.darwin-x64.node'
     case 'aarch64-unknown-linux-gnu': return 'evot-napi.linux-arm64-gnu.node'
     case 'x86_64-unknown-linux-gnu': return 'evot-napi.linux-x64-gnu.node'
+    case 'x86_64-pc-windows-msvc': return 'evot-napi.win32-x64-msvc.node'
     default: return null
   }
 }

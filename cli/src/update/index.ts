@@ -29,11 +29,11 @@ export type { StagedUpdate } from './stage.js'
 
 import type { RunResult } from './types.js'
 import { existsSync } from 'fs'
-import { join } from 'path'
 import { checkForUpdate, lastCheckError } from './check.js'
 import { executeInstall } from './install.js'
 import { parseReleaseNotes } from './notes.js'
 import { installBinDir, runningInstallDir } from './paths.js'
+import { binaryPath } from './binary-name.js'
 import { installedVersionForThisProcess, isManagedInstall } from './state.js'
 import { clearStaged, readStaged } from './stage.js'
 import { resolveUpdateProxy } from './proxy.js'
@@ -161,7 +161,7 @@ function execIntoInstalledBinary(
   // checkout (`bun run src/index.ts`) or a test process would otherwise be
   // replaced by the released binary, discarding the code under development.
   if (!runningInstallDir()) return
-  const binary = join(installBinDir(), 'evot')
+  const binary = binaryPath(installBinDir())
   if (!existsSync(binary)) return
   try {
     execve(binary, [binary, ...argv], env)

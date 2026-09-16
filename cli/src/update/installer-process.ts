@@ -10,7 +10,13 @@ export interface InstallerExecution {
  * render inert text, never curl's carriage-return/terminal control sequences. */
 export async function runInstallerScript(script: string, env: Record<string, string>, options: InstallerExecution = {}): Promise<{ success: boolean; output: string }> {
   if (options.signal?.aborted) return { success: false, output: 'Installation cancelled' }
-  const proc = spawn('sh', [], { stdio: ['pipe', 'pipe', 'pipe'], env, detached: process.platform !== 'win32' })
+  // install.sh is POSIX sh. On Windows there is no /bin/sh; run it through
+  // Git Bash's bash when available. Git Bash ships a full POSIX emulation,
+  // so the installer's `set -e`, process handling and curl/tar calls behave
+  // the same as on Linux. Fall back to plain 'sh' everywhere else (macOS,
+  // Linux and WSL all provide one).
+  const shell = process.platform === 'win32' ? 'bash' : 'sh'
+  const proc = spawn(shell, [], { stdio: ['pipe', 'pipe', 'pipe'], env, detached: process.platform !== 'win32' })
   const exited = new Promise<number | null>((resolve, reject) => {
     proc.once('error', reject)
     proc.once('exit', resolve)

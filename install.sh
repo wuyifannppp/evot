@@ -217,6 +217,7 @@ ARCH="$(uname -m)"
 case "$OS" in
   Darwin) os="darwin" ;;
   Linux)  os="linux" ;;
+  MINGW*|MSYS*|CYGWIN*) os="windows" ;;
   *)      error "Unsupported OS: $OS" ;;
 esac
 
@@ -244,6 +245,14 @@ case "${os}-${arch}" in
   darwin-aarch64)
     TARGET="aarch64-apple-darwin"
     BINDING="evot-napi.darwin-arm64.node"
+    ;;
+  windows-x86_64)
+    TARGET="x86_64-pc-windows-msvc"
+    BINDING="evot-napi.win32-x64-msvc.node"
+    BINARY="evot.exe"
+    ;;
+  *)
+    error "Unsupported platform: ${os}/${arch}"
     ;;
 esac
 

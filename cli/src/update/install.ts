@@ -2,8 +2,8 @@
  * Execute the install script to update evot.
  */
 
-import { join } from 'path'
 import { installBinDir, installRoot, runningInstallDir } from './paths.js'
+import { binaryPath } from './binary-name.js'
 import { runInstallerScript, type InstallerExecution } from './installer-process.js'
 import { applyProxyToEnv, resolveUpdateProxy } from './proxy.js'
 
@@ -79,7 +79,7 @@ async function verifyInstalledVersion(
   env: Record<string, string>,
 ): Promise<{ success: boolean; output: string }> {
   const root = installRoot(env)
-  const binary = join(installBinDir(env), 'evot')
+  const binary = binaryPath(installBinDir(env))
   const proc = Bun.spawn([binary, '--version'], {
     stdout: 'pipe',
     stderr: 'pipe',

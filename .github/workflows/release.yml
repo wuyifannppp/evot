@@ -226,6 +226,8 @@ jobs:
             os: macos-latest
           - target: x86_64-apple-darwin
             os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
     steps:
       - uses: actions/checkout@v5
         with:
@@ -312,9 +314,23 @@ jobs:
         env:
           EVOT_VERSION: ${{ needs.create_release.outputs.version }}
 
+      - name: Build NAPI binding (Windows)
+        if: endsWith(matrix.target, '-windows-msvc')
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd cli
+          bun install
+          # napi-rs resolves the MSVC toolchain from the Rust target; the
+          # resulting cdylib is evot-napi.win32-x64-msvc.node in cwd.
+          npx napi build --manifest-path addon/Cargo.toml --release --platform --target ${{ matrix.target }} --output-dir .
+        env:
+          EVOT_VERSION: ${{ needs.create_release.outputs.version }}
+
       - name: Build CLI binary
         shell: bash
         run: |
+          set -euo pipefail
           cd cli
           BUN_TARGET=""
           case "${{ matrix.target }}" in
@@ -322,8 +338,13 @@ jobs:
             aarch64-unknown-linux-gnu)  BUN_TARGET="--target=bun-linux-arm64" ;;
             aarch64-apple-darwin)       BUN_TARGET="--target=bun-darwin-arm64" ;;
             x86_64-apple-darwin)        BUN_TARGET="--target=bun-darwin-x64" ;;
+            x86_64-pc-windows-msvc)     BUN_TARGET="--target=bun-windows-x64" ;;
           esac
-          bun build src/index.ts --compile ${BUN_TARGET} --define 'process.env.DEV="false"' --define 'process.env.NODE_ENV="production"' --outfile dist/${{ env.BINARY_NAME }}
+          OUTFILE="dist/${{ env.BINARY_NAME }}"
+          case "${{ matrix.target }}" in
+            *-windows-msvc) OUTFILE="dist/${{ env.BINARY_NAME }}.exe" ;;
+          esac
+          bun build src/index.ts --compile ${BUN_TARGET} --define 'process.env.DEV="false"' --define 'process.env.NODE_ENV="production"' --outfile "$OUTFILE"
 
       - name: Package
         shell: bash
@@ -331,7 +352,14 @@ jobs:
           set -euo pipefail
           VERSION="${{ needs.create_release.outputs.version }}"
           mkdir -p distro/{bin,lib}
-          cp cli/dist/${{ env.BINARY_NAME }} distro/bin/
+          case "${{ matrix.target }}" in
+            *-windows-msvc)
+              cp "cli/dist/${{ env.BINARY_NAME }}.exe" "distro/bin/${{ env.BINARY_NAME }}.exe"
+              ;;
+            *)
+              cp "cli/dist/${{ env.BINARY_NAME }}" "distro/bin/${{ env.BINARY_NAME }}"
+              ;;
+          esac
           cp cli/${{ env.BINARY_NAME }}-napi.*.node distro/lib/
           if [ "$(uname -s)" = "Darwin" ]; then
             # Re-sign bun-compiled binary: remove potentially invalid signature, then adhoc sign
